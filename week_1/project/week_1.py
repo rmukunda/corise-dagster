@@ -76,7 +76,8 @@ def put_s3_data_op(context, aggregations):
 
 @job
 def machine_learning_job():
-    put_redis_data_op(process_data_op(get_s3_data_op()))
-    put_s3_data_op(process_data_op(get_s3_data_op()))
+    agg = process_data_op(get_s3_data_op())
+    put_redis_data_op(agg)
+    put_s3_data_op(agg)
     
 #job = machine_learning_job.to_job()
