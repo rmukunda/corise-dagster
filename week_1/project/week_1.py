@@ -80,4 +80,3 @@ def machine_learning_job():
     put_redis_data_op(agg)
     put_s3_data_op(agg)
     
-#job = machine_learning_job.to_job()
