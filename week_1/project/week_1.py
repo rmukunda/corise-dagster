@@ -58,20 +58,25 @@ def get_s3_data_op(context):
 
 @op(ins= {"stocks": In(dagster_type = List[Stock])},
     out = {"highs": Out(dagster_type = Aggregation)},)
-def process_data_op():
+def process_data_op(context, stocks):
+    stocks.sort(key=lambda x:x.high, reverse = True)
+    st = stocks[0]
+    return Aggregation(date = st.date , high = st.high)
+
+
+@op(ins= {"aggregations": In(dagster_type = Aggregation)},)
+def put_redis_data_op(context, aggregations):
     pass
 
 
-@op
-def put_redis_data_op():
-    pass
-
-
-@op
-def put_s3_data_op():
+@op(ins= {"aggregations": In(dagster_type = Aggregation)},)
+def put_s3_data_op(context, aggregations):
     pass
 
 
 @job
 def machine_learning_job():
-    pass
+    put_redis_data_op(process_data_op(get_s3_data_op()))
+    put_s3_data_op(process_data_op(get_s3_data_op()))
+    
+#job = machine_learning_job.to_job()
