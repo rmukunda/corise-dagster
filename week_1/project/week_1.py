@@ -50,12 +50,14 @@ def csv_helper(file_name: str) -> Iterator[Stock]:
             yield Stock.from_list(row)
 
 
-@op
-def get_s3_data_op():
-    pass
+@op(config_schema={"s3_key": String},
+    out= {"stocks": Out(dagster_type = List[Stock])}, )
+def get_s3_data_op(context):
+    return [record for record in csv_helper(context.op_config['s3_key'])]
 
 
-@op
+@op(ins= {"stocks": In(dagster_type = List[Stock])},
+    out = {"highs": Out(dagster_type = Aggregation)},)
 def process_data_op():
     pass
 
