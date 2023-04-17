@@ -69,10 +69,17 @@ docker = {
 machine_learning_job_local = machine_learning_graph.to_job(
     name="machine_learning_job_local",
     config=local,
-    
+    resource_defs={
+        "s3": mock_s3_resource, 
+        "redis": ResourceDefinition.mock_resource()
+        }
 )
 
 machine_learning_job_docker = machine_learning_graph.to_job(
     name="machine_learning_job_docker",
     config=docker,
+    resource_defs={
+        "s3": s3_resource,
+        "redis": redis_resource
+    }
 )
