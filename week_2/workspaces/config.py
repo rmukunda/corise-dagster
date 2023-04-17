@@ -27,5 +27,5 @@ REDIS = {
     "port": 6379,
 }
 
-S3_FILE = "prefix/stock.csv"
+S3_FILE = "data/stock.csv"
 ANALYTICS_TABLE = "analytics.dbt_table"
