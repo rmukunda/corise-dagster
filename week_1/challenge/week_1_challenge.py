@@ -13,6 +13,7 @@ from dagster import (
     Out,
     Output,
     String,
+    Int,
     job,
     op,
     usable_as_dagster_type,
@@ -55,24 +56,30 @@ def csv_helper(file_name: str) -> Iterator[Stock]:
             yield Stock.from_list(row)
 
 
-@op
-def get_s3_data_op():
-    pass
+@op(config_schema={"s3_key": String},
+    out= {"stocks": Out(dagster_type = List[Stock], is_required=False),
+          "empty_stocks": Out(is_required=False)
+    }
+          )
+def get_s3_data_op(context):
+    csv_data = csv_helper(context.op_config['s3_key'])
+    stock_list = [record for record in csv_data]
+    if not len(stock_list)==0:
+        yield Output(stock_list, 'stocks')
+    else:
+        yield Output(None, 'empty_stocks')
 
+   
 
-@op
-def process_data_op():
-    pass
-
-
-@op
-def put_redis_data_op():
-    pass
-
-
-@op
-def put_s3_data_op():
-    pass
+@op(config_schema= {"nlargest": Int},
+    ins={"stocks": In(dagster_type = List)},
+    out = DynamicOut())
+def process_data_op(context, stocks):
+    nums = context.op_config['nlargest']
+    stocks.sort(key=lambda x:x.high, reverse = True)
+    stks = stocks[:nums]
+    for st in stks:
+        yield DynamicOutput(Aggregation(date = st.date , high = st.high), mapping_key=st.date.strftime('%Y_%m_%d'))
 
 
 @op(
@@ -84,6 +91,22 @@ def empty_stock_notify_op(context: OpExecutionContext, empty_stocks: Any):
     context.log.info("No stocks returned")
 
 
+@op(ins= {"aggregations": In(dagster_type = List[Aggregation])},)
+def put_redis_data_op(context, aggregations):
+    pass
+
+
+@op(ins= {"aggregations": In(dagster_type = List[Aggregation])},)
+def put_s3_data_op(context, aggregations):
+    pass
+
+
 @job
 def machine_learning_dynamic_job():
-    pass
+    stocklist, empty = get_s3_data_op()
+    print(stocklist)
+    empty_stock_notify_op(empty)
+    agg = process_data_op(stocklist).collect()
+    put_redis_data_op(agg)
+    put_s3_data_op(agg)
+    return
